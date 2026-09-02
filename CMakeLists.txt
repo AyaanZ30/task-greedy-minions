@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Threads REQUIRED)
+# target_include_directories({PROJECT_NAME} PRIVATE {CMAKE_SOURCE_DIR}/include)
 
 option(JOBSYS_BUILD_TESTS "Build tests" ON)
 option(JOBSYS_BUILD_BENCH "Build benchmarks" ON)

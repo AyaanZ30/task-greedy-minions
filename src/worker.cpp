@@ -30,6 +30,8 @@ Task* Worker::try_steal(){
 }
 
 void Worker::run_loop(){
+    // JobSystem::current_worker_ = this; won't work as current_worker_ is a private member of JobSystem class
+    system_.set_current_worker(this);
     int failed_attempts = 0;
 
     while(!system_.is_shutting_down()){

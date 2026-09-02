@@ -3,6 +3,7 @@
 #include <atomic>
 #include <functional>
 #include <vector>
+#include <memory>
 
 /*
 Ensures safe pushing of a task fn in the WorkStealingDeque [which handles exec-stealing logic]
@@ -47,7 +48,7 @@ namespace jobsys{
             successors.push_back(successor);
 
             // add any unfinished predecessors [prev tasks in hierarchy] for the current task (successor)
-            successor->unfinished_predecessors.fetch_add(1, std::memory_order::memory_order_relaxed);
+            successor->unfinished_predecessors.fetch_add(1, std::memory_order_relaxed);
         }
     };
 }

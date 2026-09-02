@@ -4,12 +4,14 @@
 #include <vector>
 #include <memory>
 
-#include "jobsys/worker.hpp"
+#include "worker.hpp"
 
 namespace jobsys{
     struct Task;
 
     class JobSystem{
+        // friend class Worker;
+
         public:
             /*
             Spawns 'num_worker' threads. Workers are fully constructed before any of the 
@@ -23,11 +25,20 @@ namespace jobsys{
                 - Caller should have already ensured all the outstanding work is done [via wait_all()]
                 - If unfinished work => abandons it [destructor does not wait for completion itself] 
                 - Hence, not a safe "wait-then-shutdown" mechanism [finished work JOINED / unfinished work DROPPED] 
+            
+            Hence, destructor won't explicitly call wait_all()    
             */
             ~JobSystem();
 
             JobSystem(const JobSystem&) = delete;
             JobSystem& operator=(const JobSystem&) = delete;
+
+            /*
+            setter => called in run_loop() to identify "this" worker (current) 
+            modifies current_worker_ 
+            (setter sets the private variable internally)
+            */
+            void set_current_worker(Worker *worker);
 
             /*
             Submit the root task (no predecessors) [STARTING POINT] to the system
@@ -58,13 +69,22 @@ namespace jobsys{
             /*
             worker owning "this thread" if any. Remains nullptr for the main thread
             Purpose : recognition of the worker on the basis of its LOCAL thread
+
+            If current_worker_ => thread_local 
+            Every single thread in the prog gets its own completely private copy of 'current_worker_'
             */
             static thread_local Worker* current_worker_; 
 
             /*Stores a unique ptr to each Worker => memory location stored for each worker*/
-            std::vector<std::unique_ptr<Worker>> workers;
+            std::vector<std::unique_ptr<Worker>> workers_;
 
             std::atomic<int> num_outstanding_{0};     // outstanding Tasks remaining 
             std::atomic<bool> shutdown_flag_{false};  // Signals is_shutting_down() on being flagged True
+    
+            /*
+            round-robin cursor for submissions (tasks) arriving from outside any worker
+            outside thread(s) => main thread (only 1 for now) [atomic<int> + fetch_add() : if multiple external threads submit concurrently]
+            */
+            int next_submit_worker_ = 0;
     };
 }

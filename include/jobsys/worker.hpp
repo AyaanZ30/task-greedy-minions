@@ -50,7 +50,7 @@ namespace jobsys{
             ~Worker();
 
             Worker(const Worker&) = delete;
-            Worker operator=(const Worker&) = delete;
+            Worker& operator=(const Worker&) = delete;
 
             // Commence the OS thread before run_loop()
             void start();
