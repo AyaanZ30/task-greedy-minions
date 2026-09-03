@@ -7,9 +7,10 @@
 #include <mutex>
 #include <iomanip>
 
-#include "../include/jobsys/job_system.hpp"
-#include "../include/jobsys/task.hpp"
-#include "compute_task.hpp"
+#include "jobsys/job_system.hpp"
+#include "jobsys/task.hpp"
+
+#include "tasks/compute_task.hpp"
 
 /*
 We first create a static-dependencies task graph (create Task objects and wire up dependencies (add_successor) before executing anything at all)
@@ -35,10 +36,11 @@ double serial_execution(Func&& func, Args&&... args){
 int main()
 {
     const unsigned int cores = std::thread::hardware_concurrency();
-    const unsigned int num_workers = (cores > 0) ? cores : 4;
+    // const unsigned int num_workers = (cores > 0) ? cores : 4;
+    const unsigned int num_workers = 4;
 
     constexpr int N = 20'000'000;
-    constexpr int ITERATIONS = 50;
+    constexpr int ITERATIONS = 1000;
 
     std::vector<double> input(N);
     for (int i = 0; i < N; ++i) input[i] = static_cast<double>(i % 1000) * 0.001;
