@@ -13,7 +13,7 @@ JobSystem::JobSystem(int num_workers) {
     workers_.reserve(static_cast<size_t>(num_workers));
 
     // Allocate unique pointers to each worker (construct the workers vector)
-    for(size_t i = 0 ; i < num_workers ; ++i){
+    for(int i = 0 ; i < num_workers ; ++i){
         workers_.push_back(std::make_unique<Worker>(i, *this));
     }
 
