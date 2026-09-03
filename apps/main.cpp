@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <iomanip>
 
 #include "../include/jobsys/job_system.hpp"
 #include "../include/jobsys/task.hpp"
@@ -21,13 +22,14 @@ using namespace jobsys;
 
 int main()
 {
-    constexpr int num_workers = 4;
-    constexpr int data_size = 40;
+    const unsigned int cores = std::thread::hardware_concurrency();
+    const unsigned int num_workers = cores;
 
-    std::vector<int> data;
-    for(int i = 0 ; i < data_size ; ++i) data[i] = i;
+    constexpr int data_size = 100000000;
+    std::vector<int> data(data_size, 0);
+    for(int i = 0 ; i < data_size ; i++) data[i] = i;
 
-    constexpr int num_chunks = 4;
+    const int num_chunks = num_workers * 8;
     int chunk_size = (data_size / num_chunks);      // 4 chunks (10 integers per-chunk)
 
     /*stores task objects in memory throughout execution lifecycle*/
@@ -40,9 +42,9 @@ int main()
     define the aggregator task => basically returns the final result (aggregation of worker executed tasks) => 4 * result(filter-task)
     pass &results, &results_mtx (by reference) : AS we want these to be shared among all workers performing their own tasks 
     */
-    auto aggregate = std::make_unique<Task>([&results, &results_mtx]() {
+    auto aggregate = std::make_unique<Task>([&results, &results_mtx, num_workers]() {
         std::lock_guard<std::mutex> lock(results_mtx);
-        std::cout << "[aggregator] collected " << results.size() << " even numbers (using " << num_workers << " workers)\n";
+        // std::cout << "[aggregator] collected " << results.size() << " even numbers (using " << num_workers << " workers)\n";
     });
 
     // non-owning reference to actual owner (unique_ptr)
@@ -64,7 +66,7 @@ int main()
             // avoid possible race due to concurrent thread-bound write operations (each worker persistently finding local_evens for its chunk and writing it back to results in parallel)
             std::lock_guard<std::mutex> safe_write_lock(results_mtx);
             results.insert(results.end(), local_evens.begin(), local_evens.end());
-            std::cout << "[filter " << c << "] processed range [" << start << ", " << end << ")\n";
+            // std::cout << "[filter " << c << "] processed range [" << start << ", " << end << ")\n";
         });
 
         /*
@@ -81,14 +83,21 @@ int main()
 
     tasks.push_back(std::move(aggregate));
     {
-        JobSystem system(num_workers);
-        for(Task* t : filter_tasks){
-            system.submit(t);
-        }
+        auto t0 = std::chrono::steady_clock::now();
+        {
+            JobSystem system(num_workers);
+            for(Task* t : filter_tasks){
+                system.submit(t);
+            }
 
-        system.wait_all();
-        // JobSystem destructor executed here (sets shutdown_flag_, joins threads)
-        // Safe because wait_all() already guaranteed no work is outstanding.
+            system.wait_all();
+            // JobSystem destructor executed here (sets shutdown_flag_, joins threads)
+            // Safe because wait_all() already guaranteed no work is outstanding.
+        }
+        auto t1 = std::chrono::steady_clock::now();
+
+        auto elapsed = std::chrono::duration<double>(t1 - t0).count();
+        std::cout << "Elapsed: " << std::fixed << std::setprecision(3) << elapsed << " sec\n";
     }   
 
     std::cout << "Job done (Total evens found : " << results.size() << ")\n";
