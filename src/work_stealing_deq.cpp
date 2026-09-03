@@ -2,8 +2,6 @@
 #include <thread>
 
 #include "jobsys/work_stealing_deq.hpp"
-
-
 namespace jobsys{
 
     void WorkStealingDeque::push_bottom(Task *t){

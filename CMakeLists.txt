@@ -11,6 +11,8 @@ endif()
 find_package(Threads REQUIRED)
 # target_include_directories({PROJECT_NAME} PRIVATE {CMAKE_SOURCE_DIR}/include)
 
+enable_testing()
+
 option(JOBSYS_BUILD_TESTS "Build tests" ON)
 option(JOBSYS_BUILD_BENCH "Build benchmarks" ON)
 
