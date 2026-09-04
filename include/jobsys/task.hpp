@@ -26,6 +26,9 @@ namespace jobsys{
         // std::function is a wrapper that can store any function [void() : function stored returns nothing]
         std::function<void()> fn;
 
+        std::atomic<bool> failed_{false};
+        std::atomic<bool> skip_{false};
+
         std::atomic<int> unfinished_predecessors{0};
         std::vector<Task*> successors;
 

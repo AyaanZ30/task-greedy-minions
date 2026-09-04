@@ -53,7 +53,9 @@ void Worker::run_loop(){
 
         if(task){
             failed_attempts = 0;
-            execute(task);
+
+            // If throws an error => std::terminate (silently kills a worker) => task never executed (num_outstanding_ always > 0) => system stuck in wait_all() forever
+            execute(task);         
         }else{
             ++failed_attempts;
             if(failed_attempts < 100){
@@ -70,8 +72,23 @@ the void func being the task to be executed (stored as a member in struct Task)
 For a Task t : t->fun() => calls the void fn to be executed.
 */
 void Worker::execute(Task* task){
-    task->fn();
-    system_.on_task_finished(task);
+    if(task->skip_.load(std::memory_order_acquire)){
+        std::cerr << "[Worker " << id_ << "] Skipping task -- ancestor failed.\n";
+        system_.on_task_finished(task);
+        return;
+    }
+
+    try{
+        task->fn();
+    }catch(...){
+        task->failed_.store(true, std::memory_order_relaxed);
+        std::cerr << "[Worker " << id_ << "] Task threw (unknown) exception (--successors will NOT be scheduled).\n";
+    }
+    /*
+    always decrement predecessors [for num_outstanding_ to -> 0] => so system doesn't wait_all() in a hanging-state
+    (called irrespective of task's execution failure)
+    */
+    system_.on_task_finished(task);    
 }
 
 

@@ -11,15 +11,16 @@
 // threading overhead from memory-bandwidth effects — unlike the blur
 // task, this should scale close to linearly with physical core count
 // if the scheduler itself is efficient.
+
 inline std::unique_ptr<jobsys::Task> create_compute_task(
     const std::vector<double>& input,
     std::vector<double>& output,
-    int start, int end,
+    size_t start, size_t end,
     int iterations_per_element)
 {
     return std::make_unique<jobsys::Task>(
         [&input, &output, start, end, iterations_per_element]() {
-            for (int i = start; i < end; ++i) {
+            for (size_t i = start; i < end; ++i) {
                 double x = input[i];
                 for (int k = 0; k < iterations_per_element; ++k) {
                     x = std::sin(x) * std::cos(x) + std::sqrt(std::abs(x) + 1.0);

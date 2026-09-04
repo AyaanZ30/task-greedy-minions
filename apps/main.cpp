@@ -23,6 +23,7 @@ The vector holding Task objects must stay alive UNTIL every task has finished ex
 
 wait_all() : blocks main thread (orchestrator) until workers (executors) finish executing all tasks 
 */
+
 using namespace jobsys;
 
 template<typename Func, typename... Args>        // takes any task helper func with any number of parameters (dynamic forwarding)
@@ -39,8 +40,8 @@ int main()
     // const unsigned int num_workers = (cores > 0) ? cores : 4;
     const unsigned int num_workers = 4;
 
-    constexpr int N = 20'000'000;
-    constexpr int ITERATIONS = 1000;
+    constexpr size_t N = 10000; 
+    constexpr int ITERATIONS = 10000;
 
     std::vector<double> input(N);
     for (int i = 0; i < N; ++i) input[i] = static_cast<double>(i % 1000) * 0.001;

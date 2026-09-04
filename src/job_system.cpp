@@ -10,6 +10,7 @@ using namespace jobsys;
 thread_local Worker* JobSystem::current_worker_ = nullptr;
 
 JobSystem::JobSystem(int num_workers) {
+    if(num_workers < 1) throw std::invalid_argument("JobSystem requires at least 1 worker");
     workers_.reserve(static_cast<size_t>(num_workers));
 
     // Allocate unique pointers to each worker (construct the workers vector)
@@ -82,12 +83,14 @@ Worker& JobSystem::worker_at(int index){
 }
 
 void JobSystem::on_task_finished(Task *task){
+    bool propagate_skip = task->failed_.load(std::memory_order_relaxed) || task->skip_.load(std::memory_order_relaxed);
     for(Task *succ : task->successors){
         /*
         Check unfinished previous tasks to the successor (by counting)
-        Multiple predecessors of a successor CAN finish concurrently ON different threads (hence, atomic predecessors)
         If for a successor <= (unfinished_predecessors = 0) : submit(successor) [task] 
+        System never hangs on wait_all() => as failed predecessors are skipped (eventually scheduling the successor) [as num_outstanding_ -> 0]
         */
+        if(propagate_skip) succ->skip_.store(true, std::memory_order_relaxed);
         int remaining = succ->unfinished_predecessors.fetch_sub(1, std::memory_order_acq_rel) - 1;
         if(remaining == 0){
             submit(succ);
