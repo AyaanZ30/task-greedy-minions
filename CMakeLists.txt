@@ -8,6 +8,10 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+if(MINGW)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -static-libgcc -static-libstdc++")
+endif()
+
 find_package(Threads REQUIRED)
 # target_include_directories({PROJECT_NAME} PRIVATE {CMAKE_SOURCE_DIR}/include)
 
@@ -15,14 +19,6 @@ enable_testing()
 
 option(JOBSYS_BUILD_TESTS "Build tests" ON)
 option(JOBSYS_BUILD_BENCH "Build benchmarks" ON)
-
-# ThreadSantizer (TSan) : detects data races in multi-threaded code at runtime [effective testing]
-option(JOBSYS_ENABLE_TSAN "Build with ThreadSanitizer" OFF)
-
-if(JOBSYS_ENABLE_TSAN)
-    add_compile_options(-fsanitize=thread -g)
-    add_link_options(-fsanitize=thread)
-endif()
 
 add_subdirectory(src)
 add_subdirectory(apps)

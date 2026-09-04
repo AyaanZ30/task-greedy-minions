@@ -10,7 +10,9 @@
 #include "jobsys/job_system.hpp"
 #include "jobsys/task.hpp"
 
-#include "tasks/compute_task.hpp"
+// #include "tasks/compute_task.hpp"
+// #include "tasks/mandelbrot_task.hpp"
+#include "tasks/n_body_gravity_task.hpp"
 
 /*
 We first create a static-dependencies task graph (create Task objects and wire up dependencies (add_successor) before executing anything at all)
@@ -37,27 +39,32 @@ double serial_execution(Func&& func, Args&&... args){
 int main()
 {
     const unsigned int cores = std::thread::hardware_concurrency();
-    // const unsigned int num_workers = (cores > 0) ? cores : 4;
-    const unsigned int num_workers = 4;
+    const unsigned int num_workers = (cores > 0) ? cores : 4;
 
-    constexpr size_t N = 10000; 
-    constexpr int ITERATIONS = 10000;
+   // 1080p Mandelbrot setup
+    constexpr size_t N_BODIES = 15000;
 
-    std::vector<double> input(N);
-    for (int i = 0; i < N; ++i) input[i] = static_cast<double>(i % 1000) * 0.001;
+    std::vector<Body> bodies(N_BODIES);
+    for(size_t i = 0 ; i < N_BODIES ; ++i){
+        bodies[i] = {
+            static_cast<double>(i % 100), static_cast<double>(i % 50), static_cast<double>(i % 25),
+            0.1, 0.2, 0.3,
+            1e10 + (i % 100) * 1e8
+        };
+    }
 
-    std::vector<double> out_serial(N, 0.0);
-    std::vector<double> out_parallel(N, 0.0);
+    std::vector<Body> out_serial(N_BODIES);
+    std::vector<Body> out_parallel(N_BODIES);
 
-    double serial_time = serial_execution(compute_serial, input, out_serial, ITERATIONS);
+    double serial_time = serial_execution(gravity_serial, bodies, out_serial, 0.001);
     std::cout << "Serial time : " << std::fixed << std::setprecision(3) << serial_time << " sec\n";
     
-    const int num_chunks = num_workers * 4;
-    int chunk_size = (N / num_chunks);      
+    const int num_chunks = num_workers * 8;   
+    int chunk_size = (N_BODIES / num_chunks);      
 
     /*stores task objects in memory throughout execution lifecycle*/
     std::vector<std::unique_ptr<Task>> tasks;
-    std::vector<Task*> filter_tasks;     // stores ptr to 4 filter tasks (void fn's => filter even numbers from the specific chunk)
+    std::vector<Task*> initial_tasks;     // stores ptr to 4 filter tasks (void fn's => filter even numbers from the specific chunk)
 
     /*
     define the aggregator task => basically returns the final result (aggregation of worker executed tasks) => 4 * result(filter-task)
@@ -71,21 +78,20 @@ int main()
 
     for(int c = 0 ; c < num_chunks ; ++c){
         int start = (c * chunk_size);
-        int end = (c == num_chunks - 1) ? N : (start + chunk_size);
+        int end = (c == num_chunks - 1) ? N_BODIES : (start + chunk_size);
         
         /*lambda filter fn(void()) => basically stored in each workers deque as a task to be popped and executed*/
-        auto filter = create_compute_task(input, out_parallel, start, end, ITERATIONS);
-
+        auto mb_task = create_gravity_task(bodies, out_parallel, start, end, 0.001);
         /*
         once filter finished => decrement aggregator's predecessor count [as aggregator is the final step of the job]
         if predecessors(aggregator) = 0 {no filter task pending} : aggregator is now runnable (ready to be executed)
         Hence => successor(filter) = aggregator || predecessor(aggregator) = filter 
         */
-        filter->add_successors(aggregate.get());
-        filter_tasks.push_back(filter.get());
+        mb_task->add_successors(aggregate.get());
+        initial_tasks.push_back(mb_task.get());
 
         /*racks up lambda filter fn in the deque's of worker threads as tasks (to be executed / stolen)*/
-        tasks.push_back(std::move(filter));
+        tasks.push_back(std::move(mb_task));
     }
 
     tasks.push_back(std::move(aggregate));
@@ -95,7 +101,7 @@ int main()
         auto p0 = std::chrono::steady_clock::now();
         {
             JobSystem system(num_workers);
-            for(Task* t : filter_tasks){
+            for(Task* t : initial_tasks){
                 system.submit(t);
             }
 

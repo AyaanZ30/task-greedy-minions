@@ -5,11 +5,19 @@ When 2 threads try to access the same memory location at the same time w/o any s
 
 1) rm -rf build (everytime you open the project AND need a fresh MinGW build)
 
-2) cmake -B build -S . -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-static" -DJOBSYS_ENABLE_TSAN=ON (optional for casual runs)
+2) cmake -B build -S . -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXE_LINKER_FLAGS="-static" 
 
-3) cmake --build build
+For max hardware speed, use:
 
-4) Run with GNU debugger [gdb ./build/apps/job_scheduler.exe] (if error persists)      OR  ./build/apps/job_scheduler.exe
+[Build type : Release (stripped down to raw machine code, no debugging symbols, assertions disables, heavily re-written loops)]
+
+2) cmake -B build -S . -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release 
+-DCMAKE_CXX_FLAGS="-march=native -ffast-math" -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
+
+3) cmake --build build --clean-first
+
+4) ./build/apps/scheduler.exe       
+   [gdb ./build/apps/scheduler.exe <= if error persists (run with GNU Debugger)] 
 
 
 ## Steps to test a functional component (from project root [greedy-minions/]):

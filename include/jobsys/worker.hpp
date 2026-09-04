@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "work_stealing_deq.hpp"
+#include "lockfree_deq.hpp"
 
 /*
 A Worker object => one persistent OS worker thread (bound to its own local WorkStealingDeque)
@@ -35,7 +36,8 @@ namespace jobsys{
         private:
             int id_;
             JobSystem& system_;
-            WorkStealingDeque queue_;
+            // WorkStealingDeque queue_;
+            LockFreeDeque queue_;
             std::thread thread_;
             std::mt19937 rng_;
 
