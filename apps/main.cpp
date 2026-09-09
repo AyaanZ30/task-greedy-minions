@@ -9,6 +9,8 @@
 
 #include "benchmark.hpp"
 #include "benchmarks/mandelbrot_benchmark.hpp"
+#include "benchmarks/raytrace_benchmark.hpp"
+#include "benchmarks/nbody_benchmark.hpp"
 
 /*
 We first create a static-dependencies task graph (create Task objects and wire up dependencies (add_successor) before executing anything at all)
@@ -36,17 +38,13 @@ void run_benchmark(Benchmark& b, unsigned int num_workers){
 int main()
 {
     const unsigned int cores = std::thread::hardware_concurrency();
-    // const unsigned int num_workers = (cores > 0) ? cores : 4;
-    const unsigned int num_workers = 4;
-
+    const unsigned int num_workers = (cores > 0) ? cores : 4;
+    
     std::vector<std::unique_ptr<Benchmark>> benchmarks;
-
-    int N = 5000000;
-    std::vector<double> input(N, 0);
-    for(int i = 0 ; i < N ; i++) input[i] = i * 2;
     
     // benchmarks.push_back(std::make_unique<MandelbrotBenchmark>(16000, 16000, 50));
-    // benchmarks.push_back(std::make_unique<TranscedentalBenchmark>(input, N, 500));
+    benchmarks.push_back(std::make_unique<RaytraceBenchmark>(10000, 10000));
+    // benchmarks.push_back(std::make_unique<NBodyBenchmark>(2000));
 
     for(auto& b : benchmarks){
         run_benchmark(*b, num_workers);
