@@ -36,11 +36,17 @@ void run_benchmark(Benchmark& b, unsigned int num_workers){
 int main()
 {
     const unsigned int cores = std::thread::hardware_concurrency();
-    const unsigned int num_workers = (cores > 0) ? cores : 4;
+    // const unsigned int num_workers = (cores > 0) ? cores : 4;
+    const unsigned int num_workers = 4;
 
     std::vector<std::unique_ptr<Benchmark>> benchmarks;
+
+    int N = 5000000;
+    std::vector<double> input(N, 0);
+    for(int i = 0 ; i < N ; i++) input[i] = i * 2;
     
-    benchmarks.push_back(std::make_unique<MandelbrotBenchmark>(16000, 16000, 50));
+    // benchmarks.push_back(std::make_unique<MandelbrotBenchmark>(16000, 16000, 50));
+    // benchmarks.push_back(std::make_unique<TranscedentalBenchmark>(input, N, 500));
 
     for(auto& b : benchmarks){
         run_benchmark(*b, num_workers);
